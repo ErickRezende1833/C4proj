@@ -21,7 +21,8 @@ const uint button_B = 6;
 const uint button_C = 22;
 
 // Vetores para criar os numeros na matriz de LED
-double animacao[10][25] = {
+double animacao[11][25] = {
+
     {1.0, 1.0, 1.0, 1.0, 1.0,
      1.0, 0.0, 0.0, 0.0, 1.0,
      1.0, 0.0, 0.0, 0.0, 1.0,
@@ -80,11 +81,17 @@ double animacao[10][25] = {
      1.0, 0.0, 0.0, 0.0, 1.0,
      1.0, 1.0, 1.0, 1.0, 1.0,
      1.0, 0.0, 0.0, 0.0, 0.0,
-     1.0, 1.0, 1.0, 1.0, 1.0}  // 9
+     1.0, 1.0, 1.0, 1.0, 1.0},  // 9
+
+     {1.0, 1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0, 1.0}, // cabum
 };
 
 // Cores para cada quadro da animação
-double cores[10][3] = {
+double cores[11][3] = {
     {1.0, 0.0, 0.0},
     {1.0, 0.0, 0.0},
     {1.0, 0.0, 0.0},
@@ -94,14 +101,15 @@ double cores[10][3] = {
     {0.0, 1.0, 0.0},
     {0.0, 1.0, 0.0},
     {0.0, 1.0, 0.0},
-    {0.0, 1.0, 0.0}
+    {0.0, 1.0, 0.0},
+    {1.0, 0.0, 0.0}
 };
 
 // Variável global para o quadro atual
 int quadro_atual = 0;
 
 // Função de debouncing
-bool debounce(uint gpio) {
+/*bool debounce(uint gpio) {
     static uint32_t last_time = 0;
     uint32_t current_time = to_ms_since_boot(get_absolute_time());
     if (current_time - last_time < 200) {
@@ -109,7 +117,7 @@ bool debounce(uint gpio) {
     }
     last_time = current_time;
     return true;
-}
+}*/
 
 // Interrupção dos botões
 /*
@@ -198,29 +206,53 @@ int main() {
 
 
         if(!gpio_get(button_A)){
-            tempolimit = tempolimit + 10;
-            printf("%d\n", tempolimit);
+            tempolimit = tempolimit - 10;
+            printf("timer = %d\n", tempolimit);
             sleep_ms(500);
         }else if(!gpio_get(button_B)){
             tempolimit = tempolimit + 10;
-            printf("%d\n", tempolimit);
+            printf("timer = %d\n", tempolimit);
             sleep_ms(500);
+        }
+
+        //evitar tempos < 10
+        if(tempolimit < 10){
+            tempolimit = 10;
+            gpio_put(RED_PIN, true);
+            sleep_ms(1000);
+            gpio_put(RED_PIN, false);
         }
         
         
         if(!gpio_get(button_C)){
 
             for (int i = tempolimit; i >= 0; i--) {
-                printf("%d\n", i);
+                printf("i = %d\n", i);
                 
-                if(i <= 10){
+                
+                //init cont final
+                if(i < 10){
                 quadro_atual = i;
-                printf("%d\n", quadro_atual);
+                printf("Q = %d\n", quadro_atual);
                 desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
                 };
-                sleep_ms(500);
+
+                // tempo piscada
+                int tempo_ligado = ((float)i / (float)tempolimit) * 1000;
+                int tempo_desligado = (1-((float)i / (float)tempolimit)) * 1000;
+
+                gpio_put(RED_PIN, true);
+                sleep_ms(tempo_ligado);
+                gpio_put(RED_PIN, false);
+                sleep_ms(tempo_desligado);
+
+                
             
             };
+
+            //game over
+            quadro_atual = 10;
+            desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
 
             sleep_ms(1000);
         }
