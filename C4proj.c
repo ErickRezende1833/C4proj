@@ -11,6 +11,8 @@
 
 #define NUM_PIXELS 25
 
+#define BUZZ 21
+
 #define OUT_PIN 7
 #define GREEN_PIN 11
 #define BLUE_PIN 12
@@ -185,6 +187,10 @@ int main() {
     gpio_set_dir(button_C, GPIO_IN);
     gpio_pull_up(button_C);
 
+    //BUZZ
+    gpio_init(BUZZ);
+    gpio_set_dir(BUZZ, GPIO_OUT);
+
     // Interrupções dos botões
     /*
     gpio_set_irq_enabled_with_callback(button_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
@@ -200,7 +206,7 @@ int main() {
     gpio_set_dir(BLUE_PIN, GPIO_OUT);
 
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    int tempolimit = 9;
+    int tempolimit = 10;
     while (true) {
         
 
@@ -236,17 +242,58 @@ int main() {
                 printf("Q = %d\n", quadro_atual);
                 desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
                 };
-
+         
                 // tempo piscada
                 int tempo_ligado = ((float)i / (float)tempolimit) * 1000;
-                int tempo_desligado = (1-((float)i / (float)tempolimit)) * 1000;
-
-                gpio_put(RED_PIN, true);
-                sleep_ms(tempo_ligado);
-                gpio_put(RED_PIN, false);
-                sleep_ms(tempo_desligado);
+                int tempo_desligado = (1-((float)i / (float)tempolimit)) * 1000; //t1 + t2 = 1000
 
                 
+                if(i < 10){
+
+                    for (int i = 1; i < 2; i++) {
+                    tempo_ligado = tempo_ligado / 2;
+                    tempo_desligado = tempo_desligado / 2;
+
+                    gpio_put(RED_PIN, true);
+                    
+                    //buzzer
+                    int tempo = 100;
+                    while (tempo > 0) {
+                    gpio_put(BUZZ, true);
+                    sleep_ms(1);
+                    tempo --;
+                    gpio_put(BUZZ, false);
+                    sleep_ms(3);
+                    tempo -=3;
+                    }
+                    //---------------
+
+                    sleep_ms(tempo_ligado);
+                    gpio_put(RED_PIN, false);
+                    sleep_ms(tempo_desligado);            
+                    }
+
+                }else{
+                
+
+                    gpio_put(RED_PIN, true);
+                
+                    //buzzer
+                    int tempo = 100;
+                    while (tempo > 0) {
+                    gpio_put(BUZZ, true);
+                    sleep_ms(1);
+                    tempo --;
+                    gpio_put(BUZZ, false);
+                    sleep_ms(3);
+                    tempo -=3;
+                    }
+                    //----------------
+
+                    sleep_ms(tempo_ligado);
+                    gpio_put(RED_PIN, false);
+                    sleep_ms(tempo_desligado);   
+            }         
             
             };
 
