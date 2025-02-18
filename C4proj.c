@@ -85,15 +85,15 @@ double animacao[10][25] = {
 // Cores para cada quadro da animação
 double cores[10][3] = {
     {1.0, 0.0, 0.0},
+    {1.0, 0.0, 0.0},
+    {1.0, 0.0, 0.0},
+    {1.0, 0.0, 0.0},
     {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0},
-    {1.0, 1.0, 0.0},
-    {1.0, 0.0, 1.0},
-    {0.0, 1.0, 1.0},
-    {1.0, 0.5, 0.0},
-    {0.5, 0.0, 1.0},
-    {0.5, 0.5, 0.5},
-    {1.0, 1.0, 1.0}  
+    {0.0, 1.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 1.0, 0.0}
 };
 
 // Variável global para o quadro atual
@@ -111,6 +111,7 @@ bool debounce(uint gpio) {
 }
 
 // Interrupção dos botões
+/*
 void gpio_irq_handler(uint gpio, uint32_t events) {
     if (!debounce(gpio)) return;
 
@@ -120,6 +121,7 @@ void gpio_irq_handler(uint gpio, uint32_t events) {
         quadro_atual = (quadro_atual - 1 + 10) % 10;
     }
 }
+*/
 
 // Intensidade de cores
 uint32_t matrix_rgb(double b, double r, double g) {
@@ -171,8 +173,10 @@ int main() {
     gpio_pull_up(button_B);
 
     // Interrupções dos botões
+    /*
     gpio_set_irq_enabled_with_callback(button_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
     gpio_set_irq_enabled_with_callback(button_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
+    */
 
     // LED RGB
     gpio_init(RED_PIN);
@@ -182,21 +186,35 @@ int main() {
     gpio_init(BLUE_PIN);
     gpio_set_dir(BLUE_PIN, GPIO_OUT);
 
-    quadro_atual = 9;
-
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      
     while (true) {
-        // Piscar o LED vermelho 5 vezes por segundo
+        bool contagem = true;
+    
         
-        quadro_atual = (quadro_atual - 1);
-        sleep_ms(500);
-        if(quadro_atual == 0){
-            quadro_atual = 9;
+
+        int tempolimit = 9;
+        
+        if(contagem){
+            for (int i = tempolimit; i >= 0; i--) {
+                printf("%d\n", i);
+                
+                if(i <= 10){
+                quadro_atual = i;
+                printf("%d\n", quadro_atual);
+                desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
+                };
+
+                sleep_ms(500);
+                
+
+            
+            };
+
+            sleep_ms(1000);
         };
-
         
-        // Exibe o número atual na matriz de LEDs
-        desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
+    
+    };
 
-        printf("Quadro atual: %d\n", quadro_atual);
-    }
 }
