@@ -18,6 +18,7 @@
 
 const uint button_A = 5;
 const uint button_B = 6;
+const uint button_C = 22;
 
 // Vetores para criar os numeros na matriz de LED
 double animacao[10][25] = {
@@ -172,6 +173,10 @@ int main() {
     gpio_set_dir(button_B, GPIO_IN);
     gpio_pull_up(button_B);
 
+    gpio_init(button_C);
+    gpio_set_dir(button_C, GPIO_IN);
+    gpio_pull_up(button_C);
+
     // Interrupções dos botões
     /*
     gpio_set_irq_enabled_with_callback(button_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
@@ -187,15 +192,24 @@ int main() {
     gpio_set_dir(BLUE_PIN, GPIO_OUT);
 
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      
+    int tempolimit = 9;
     while (true) {
-        bool contagem = true;
-    
         
 
-        int tempolimit = 9;
+
+        if(!gpio_get(button_A)){
+            tempolimit = tempolimit + 10;
+            printf("%d\n", tempolimit);
+            sleep_ms(500);
+        }else if(!gpio_get(button_B)){
+            tempolimit = tempolimit + 10;
+            printf("%d\n", tempolimit);
+            sleep_ms(500);
+        }
         
-        if(contagem){
+        
+        if(!gpio_get(button_C)){
+
             for (int i = tempolimit; i >= 0; i--) {
                 printf("%d\n", i);
                 
@@ -204,17 +218,14 @@ int main() {
                 printf("%d\n", quadro_atual);
                 desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
                 };
-
                 sleep_ms(500);
-                
-
             
             };
 
             sleep_ms(1000);
-        };
+        }
         
     
-    };
+    }
 
 }
