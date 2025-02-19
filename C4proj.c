@@ -128,33 +128,7 @@ double cores[13][3] = {
     {0.0, 0.0, 0.0},
     {0.0, 1.0, 0.0}
 };
-
-// Variável global para o quadro atual
 int quadro_atual = 0;
-
-// Função de debouncing
-/*bool debounce(uint gpio) {
-    static uint32_t last_time = 0;
-    uint32_t current_time = to_ms_since_boot(get_absolute_time());
-    if (current_time - last_time < 200) {
-        return false;
-    }
-    last_time = current_time;
-    return true;
-}*/
-
-// Interrupção dos botões
-/*
-void gpio_irq_handler(uint gpio, uint32_t events) {
-    if (!debounce(gpio)) return;
-
-    if (gpio == button_A) {
-        quadro_atual = (quadro_atual + 1) % 10;
-    } else if (gpio == button_B) {
-        quadro_atual = (quadro_atual - 1 + 10) % 10;
-    }
-}
-*/
 
 // Intensidade de cores
 uint32_t matrix_rgb(double b, double r, double g) {
@@ -176,6 +150,53 @@ void desenho_pio(double *desenho, uint32_t valor_led, PIO pio, uint sm, double r
         pio_sm_put_blocking(pio, sm, valor_led);
     }
 }
+
+void buzzer_on_grave(int tempo){
+    while (tempo > 0) {
+        gpio_put(BUZZ, true);
+        sleep_ms(1);
+        tempo --;
+        gpio_put(BUZZ, false);
+        sleep_ms(10);
+        tempo -=3;
+    }
+}
+
+void buzzer_on(int tempo){
+    while (tempo > 0) {
+        gpio_put(BUZZ, true);
+        sleep_ms(1);
+        tempo --;
+        gpio_put(BUZZ, false);
+        sleep_ms(3);
+        tempo -=3;
+    }
+}
+
+
+//music
+void buzzer_on_agudo(int tempo){
+    while (tempo > 0) {
+        gpio_put(BUZZ, true);
+        sleep_ms(1);
+        tempo --;
+        gpio_put(BUZZ, false);
+        sleep_ms(1);
+        tempo -=3;
+    }
+}
+
+void tocar_musica() {
+    // Sequência de tempos para criar a melodia
+    int tempos[] = {200, 200, 200, 400, 400, 400, 200, 200, 200, 800};
+    int pausas[] = {100, 100, 100, 200, 200, 200, 100, 100, 100, 400};
+
+    for (int i = 0; i < 10; i++) {
+        buzzer_on_agudo(tempos[i]);
+        sleep_ms(pausas[i]);
+    }
+}
+//////////////
 
 // Função principal
 int main() {
@@ -233,12 +254,6 @@ int main() {
     gpio_init(BUZZ);
     gpio_set_dir(BUZZ, GPIO_OUT);
 
-    // Interrupções dos botões
-    /*
-    gpio_set_irq_enabled_with_callback(button_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
-    gpio_set_irq_enabled_with_callback(button_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
-    */
-
     // LED RGB
     gpio_init(RED_PIN);
     gpio_set_dir(RED_PIN, GPIO_OUT);
@@ -250,9 +265,12 @@ int main() {
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     int tempolimit = 10;
     bool cor = true;
+    int tempo;
+    int desarmar = 0;
     
     while (true) {
-
+        
+        
         //limpar Matrix
         quadro_atual = 11;
         desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
@@ -267,7 +285,6 @@ int main() {
 
         if(!gpio_get(button_A)){
             tempolimit = tempolimit - 10;
-            printf("timer = %d\n", tempolimit);
             
             //timer
             ssd1306_fill(&ssd, !cor);
@@ -276,12 +293,13 @@ int main() {
             sprintf(buffer, "TIME %d", tempolimit);  // Formata a string
             ssd1306_draw_string(&ssd, buffer, 35, 25);  
             ssd1306_send_data(&ssd);
+            ////
 
-            sleep_ms(500);
+            buzzer_on_agudo(100);
+            sleep_ms(100);
 
         }else if(!gpio_get(button_B)){ 
             tempolimit = tempolimit + 10;
-            printf("timer = %d\n", tempolimit);
 
             //timer
             ssd1306_fill(&ssd, !cor);
@@ -290,22 +308,40 @@ int main() {
             sprintf(buffer, "TIME %d", tempolimit);  // Formata a string
             ssd1306_draw_string(&ssd, buffer, 35, 25);  
             ssd1306_send_data(&ssd);
+            ////
 
-            sleep_ms(500);
+            buzzer_on(100);
+            sleep_ms(100);
         }
 
         
         //evitar tempos < 10
         if(tempolimit < 10){
             tempolimit = 10;
+
+            ssd1306_fill(&ssd, !cor); // Limpa o display
+            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+            ssd1306_draw_string(&ssd, "ERROR", 40, 25);   
+            ssd1306_send_data(&ssd);
+            
             gpio_put(RED_PIN, true);
-            sleep_ms(1000);
+            buzzer_on_grave(500);
             gpio_put(RED_PIN, false);
         }
         
         
         if(!gpio_get(button_C)){
 
+            //start
+            ssd1306_fill(&ssd, !cor);
+            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+            ssd1306_draw_string(&ssd, "C4 HAS BEEN", 20, 25);
+            ssd1306_draw_string(&ssd, "PLANTED", 35, 40);
+          
+            ssd1306_send_data(&ssd);
+            buzzer_on_agudo(1000); 
+
+            bool win = false;
             for (int i = tempolimit; i >= 0; i--) {
                 printf("i = %d\n", i);
                 
@@ -319,7 +355,8 @@ int main() {
 
                 //desarmar
                 if(!gpio_get(button_A) && !gpio_get(button_B)){
-                    
+                    win = true;
+                    i = 0;
                 }
                 
                 //init cont final
@@ -329,10 +366,6 @@ int main() {
                     desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
                 };
          
-                // tempo piscada
-                int tempo_ligado = ((float)i / (float)tempolimit) * 1000;
-                int tempo_desligado = (1-((float)i / (float)tempolimit)) * 1000; //t1 + t2 = 1000
-
                 
                 if(i < 10 && i > 5){
 
@@ -343,15 +376,7 @@ int main() {
                     gpio_put(RED_PIN, true);
                     
                     //buzzer
-                    int tempo = 30;
-                    while (tempo > 0) {
-                    gpio_put(BUZZ, true);
-                    sleep_ms(1);
-                    tempo --;
-                    gpio_put(BUZZ, false);
-                    sleep_ms(3);
-                    tempo -=3;
-                    }
+                    buzzer_on(30);
                     //---------------
 
                     sleep_ms(250);
@@ -366,15 +391,7 @@ int main() {
                         gpio_put(RED_PIN, true);
                         
                         //buzzer
-                        int tempo = 10;
-                        while (tempo > 0) {
-                        gpio_put(BUZZ, true);
-                        sleep_ms(1);
-                        tempo --;
-                        gpio_put(BUZZ, false);
-                        sleep_ms(3);
-                        tempo -=3;
-                        }
+                        buzzer_on(10);
                         //---------------
     
                         sleep_ms(100);
@@ -383,20 +400,15 @@ int main() {
                         }
                     
                 }else{
-                
+                    
+                    // tempo piscada
+                    int tempo_ligado = ((float)i / (float)tempolimit) * 1000;
+                    int tempo_desligado = (1-((float)i / (float)tempolimit)) * 1000; //t1 + t2 = 1000
 
                     gpio_put(RED_PIN, true);
                 
                     //buzzer
-                    int tempo = 100;
-                    while (tempo > 0) {
-                    gpio_put(BUZZ, true);
-                    sleep_ms(1);
-                    tempo --;
-                    gpio_put(BUZZ, false);
-                    sleep_ms(3);
-                    tempo -=3;
-                    }
+                    buzzer_on(50);
                     //----------------
 
                     sleep_ms(tempo_ligado);
@@ -408,23 +420,31 @@ int main() {
             
             };
 
-            //game over
-            ssd1306_fill(&ssd, !cor);
-            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-            ssd1306_draw_string(&ssd, "GAME OVER", 25, 25);
-            ssd1306_send_data(&ssd); 
+            if(win == true){
+                //win
+                ssd1306_fill(&ssd, !cor);
+                ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+                ssd1306_draw_string(&ssd, "C4 HAS BEEN", 20, 25);
+                ssd1306_draw_string(&ssd, "DEFUSED", 35, 40);
+              
+                ssd1306_send_data(&ssd); 
 
-            quadro_atual = 10;
-            desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
+                quadro_atual = 12;
+                desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
                 
-            int tempo = 5000;
-            while (tempo > 0) {
-                gpio_put(BUZZ, true);
-                sleep_ms(1);
-                tempo --;
-                gpio_put(BUZZ, false);
-                sleep_ms(3);
-                tempo -=3;
+                tocar_musica();
+
+            }else{
+                //game over
+                ssd1306_fill(&ssd, !cor);
+                ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+                ssd1306_draw_string(&ssd, "GAME OVER", 25, 25);
+                ssd1306_send_data(&ssd); 
+
+                quadro_atual = 10;
+                desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
+                
+                buzzer_on_grave(5000);
             }
 
             ssd1306_fill(&ssd, !cor);
