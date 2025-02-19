@@ -7,6 +7,14 @@
 #include "hardware/adc.h"
 #include "pico/bootrom.h"
 
+#include "hardware/i2c.h"
+#include "inc/ssd1306.h"
+#include "inc/font.h"
+#define I2C_PORT i2c1
+#define I2C_SDA 14
+#define I2C_SCL 15
+#define endereco 0x3C
+
 #include "C4proj.pio.h"
 
 #define NUM_PIXELS 25
@@ -157,6 +165,26 @@ void desenho_pio(double *desenho, uint32_t valor_led, PIO pio, uint sm, double r
 
 // Função principal
 int main() {
+
+
+    stdio_init_all();
+    // I2C Initialisation. Using it at 400Khz.
+    i2c_init(I2C_PORT, 400 * 1000);
+
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C); // Set the GPIO pin function to I2C
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C); // Set the GPIO pin function to I2C
+    gpio_pull_up(I2C_SDA); // Pull up the data line
+    gpio_pull_up(I2C_SCL); // Pull up the clock line
+    ssd1306_t ssd; // Inicializa a estrutura do display
+    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Inicializa o display
+    ssd1306_config(&ssd); // Configura o display
+    ssd1306_send_data(&ssd); // Envia os dados para o display
+
+    // Limpa o display. O display inicia com todos os pixels apagados.
+    ssd1306_fill(&ssd, false);
+    ssd1306_send_data(&ssd);
+
+    
     PIO pio = pio0;
     bool ok;
     uint32_t valor_led;
@@ -164,7 +192,7 @@ int main() {
 
     ok = set_sys_clock_khz(128000, false);
 
-    stdio_init_all();
+    
 
     printf("Iniciando a transmissão PIO\n");
     if (ok) printf("Clock set to %ld\n", clock_get_hz(clk_sys));
@@ -207,10 +235,21 @@ int main() {
 
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     int tempolimit = 10;
+    bool cor = true;
+    
     while (true) {
         
+        cor = !cor;
+        // Atualiza o conteúdo do display com animações
+        ssd1306_fill(&ssd, !cor); // Limpa o display
+        ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+        ssd1306_draw_string(&ssd, "10", 8, 10); // Desenha uma string
+        int test=300;
+        ssd1306_draw_string(&ssd, "IIME: ",  50, 30); // Desenha uma string
+        ssd1306_draw_string(&ssd, "10", 15, 48); // Desenha uma string      
+        ssd1306_send_data(&ssd); // Atualiza o display
 
-
+        
         if(!gpio_get(button_A)){
             tempolimit = tempolimit - 10;
             printf("timer = %d\n", tempolimit);
@@ -221,6 +260,7 @@ int main() {
             sleep_ms(500);
         }
 
+        
         //evitar tempos < 10
         if(tempolimit < 10){
             tempolimit = 10;
@@ -248,16 +288,14 @@ int main() {
                 int tempo_desligado = (1-((float)i / (float)tempolimit)) * 1000; //t1 + t2 = 1000
 
                 
-                if(i < 10){
+                if(i < 10 && i > 5){
 
-                    for (int i = 1; i < 2; i++) {
-                    tempo_ligado = tempo_ligado / 2;
-                    tempo_desligado = tempo_desligado / 2;
-
+                    for (int i = 1; i <= 2; i++) {
+                    
                     gpio_put(RED_PIN, true);
                     
                     //buzzer
-                    int tempo = 100;
+                    int tempo = 50;
                     while (tempo > 0) {
                     gpio_put(BUZZ, true);
                     sleep_ms(1);
@@ -268,11 +306,34 @@ int main() {
                     }
                     //---------------
 
-                    sleep_ms(tempo_ligado);
+                    sleep_ms(250);
                     gpio_put(RED_PIN, false);
-                    sleep_ms(tempo_desligado);            
+                    sleep_ms(250);            
                     }
 
+                }else if (i <= 5){
+
+                    for (int i = 1; i <= 5; i++) {
+                    
+                        gpio_put(RED_PIN, true);
+                        
+                        //buzzer
+                        int tempo = 20;
+                        while (tempo > 0) {
+                        gpio_put(BUZZ, true);
+                        sleep_ms(1);
+                        tempo --;
+                        gpio_put(BUZZ, false);
+                        sleep_ms(3);
+                        tempo -=3;
+                        }
+                        //---------------
+    
+                        sleep_ms(100);
+                        gpio_put(RED_PIN, false);
+                        sleep_ms(100);            
+                        }
+                    
                 }else{
                 
 
@@ -293,13 +354,24 @@ int main() {
                     sleep_ms(tempo_ligado);
                     gpio_put(RED_PIN, false);
                     sleep_ms(tempo_desligado);   
-            }         
+            }        
             
             };
 
             //game over
             quadro_atual = 10;
             desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
+                
+            int tempo = 5000;
+            while (tempo > 0) {
+                gpio_put(BUZZ, true);
+                sleep_ms(1);
+                tempo --;
+                gpio_put(BUZZ, false);
+                sleep_ms(3);
+                tempo -=3;
+            }
+
 
             sleep_ms(1000);
         }

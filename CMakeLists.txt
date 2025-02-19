@@ -49,7 +49,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(C4proj C4proj.c )
+add_executable(C4proj C4proj.c inc/ssd1306.c)
 
 pico_set_program_name(C4proj "C4proj")
 pico_set_program_version(C4proj "0.1")
@@ -67,7 +67,8 @@ target_link_libraries(C4proj PRIVATE
         pico_stdlib
         hardware_pio
 	    hardware_adc
-        pico_bootrom)
+        pico_bootrom
+        hardware_i2c)
 
 # Add the standard include files to the build
 target_include_directories(C4proj PRIVATE
