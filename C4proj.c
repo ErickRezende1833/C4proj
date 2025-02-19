@@ -31,7 +31,7 @@ const uint button_B = 6;
 const uint button_C = 22;
 
 // Vetores para criar os numeros na matriz de LED
-double animacao[11][25] = {
+double animacao[13][25] = {
 
     {1.0, 1.0, 1.0, 1.0, 1.0,
      1.0, 0.0, 0.0, 0.0, 1.0,
@@ -98,10 +98,22 @@ double animacao[11][25] = {
       1.0, 1.0, 1.0, 1.0, 1.0,
       1.0, 1.0, 1.0, 1.0, 1.0,
       1.0, 1.0, 1.0, 1.0, 1.0}, // cabum
+
+     {1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0}, // clear
+
+     {1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0}, // saved
 };
 
 // Cores para cada quadro da animação
-double cores[11][3] = {
+double cores[13][3] = {
     {1.0, 0.0, 0.0},
     {1.0, 0.0, 0.0},
     {1.0, 0.0, 0.0},
@@ -112,7 +124,9 @@ double cores[11][3] = {
     {0.0, 1.0, 0.0},
     {0.0, 1.0, 0.0},
     {0.0, 1.0, 0.0},
-    {1.0, 0.0, 0.0}
+    {1.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0}
 };
 
 // Variável global para o quadro atual
@@ -238,25 +252,45 @@ int main() {
     bool cor = true;
     
     while (true) {
+
+        //limpar Matrix
+        quadro_atual = 11;
+        desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
+              
         
         cor = !cor;
-        // Atualiza o conteúdo do display com animações
         ssd1306_fill(&ssd, !cor); // Limpa o display
         ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-        ssd1306_draw_string(&ssd, "10", 8, 10); // Desenha uma string
-        int test=300;
-        ssd1306_draw_string(&ssd, "IIME: ",  50, 30); // Desenha uma string
-        ssd1306_draw_string(&ssd, "10", 15, 48); // Desenha uma string      
-        ssd1306_send_data(&ssd); // Atualiza o display
+        ssd1306_draw_string(&ssd, "C4PROJ", 40, 25);   
+        ssd1306_send_data(&ssd);
 
-        
+
         if(!gpio_get(button_A)){
             tempolimit = tempolimit - 10;
             printf("timer = %d\n", tempolimit);
+            
+            //timer
+            ssd1306_fill(&ssd, !cor);
+            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+            char buffer[20];
+            sprintf(buffer, "TIME %d", tempolimit);  // Formata a string
+            ssd1306_draw_string(&ssd, buffer, 35, 25);  
+            ssd1306_send_data(&ssd);
+
             sleep_ms(500);
-        }else if(!gpio_get(button_B)){
+
+        }else if(!gpio_get(button_B)){ 
             tempolimit = tempolimit + 10;
             printf("timer = %d\n", tempolimit);
+
+            //timer
+            ssd1306_fill(&ssd, !cor);
+            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+            char buffer[20];
+            sprintf(buffer, "TIME %d", tempolimit);  // Formata a string
+            ssd1306_draw_string(&ssd, buffer, 35, 25);  
+            ssd1306_send_data(&ssd);
+
             sleep_ms(500);
         }
 
@@ -275,12 +309,24 @@ int main() {
             for (int i = tempolimit; i >= 0; i--) {
                 printf("i = %d\n", i);
                 
+                //timer
+                ssd1306_fill(&ssd, !cor);
+                ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+                char buffer[20];
+                sprintf(buffer, "TIME %d", i);  // Formata a string
+                ssd1306_draw_string(&ssd, buffer, 35, 25);  
+                ssd1306_send_data(&ssd);
+
+                //desarmar
+                if(!gpio_get(button_A) && !gpio_get(button_B)){
+                    
+                }
                 
                 //init cont final
                 if(i < 10){
-                quadro_atual = i;
-                printf("Q = %d\n", quadro_atual);
-                desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
+                    quadro_atual = i;
+
+                    desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
                 };
          
                 // tempo piscada
@@ -291,11 +337,13 @@ int main() {
                 if(i < 10 && i > 5){
 
                     for (int i = 1; i <= 2; i++) {
+
+                        
                     
                     gpio_put(RED_PIN, true);
                     
                     //buzzer
-                    int tempo = 50;
+                    int tempo = 30;
                     while (tempo > 0) {
                     gpio_put(BUZZ, true);
                     sleep_ms(1);
@@ -318,7 +366,7 @@ int main() {
                         gpio_put(RED_PIN, true);
                         
                         //buzzer
-                        int tempo = 20;
+                        int tempo = 10;
                         while (tempo > 0) {
                         gpio_put(BUZZ, true);
                         sleep_ms(1);
@@ -354,11 +402,18 @@ int main() {
                     sleep_ms(tempo_ligado);
                     gpio_put(RED_PIN, false);
                     sleep_ms(tempo_desligado);   
-            }        
+            }   
+            
+            
             
             };
 
             //game over
+            ssd1306_fill(&ssd, !cor);
+            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+            ssd1306_draw_string(&ssd, "GAME OVER", 25, 25);
+            ssd1306_send_data(&ssd); 
+
             quadro_atual = 10;
             desenho_pio(animacao[quadro_atual], valor_led, pio, sm, cores[quadro_atual][0], cores[quadro_atual][1], cores[quadro_atual][2]);
                 
@@ -372,8 +427,7 @@ int main() {
                 tempo -=3;
             }
 
-
-            sleep_ms(1000);
+            ssd1306_fill(&ssd, !cor);
         }
         
     
