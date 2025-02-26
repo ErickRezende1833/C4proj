@@ -20,10 +20,9 @@
 #define NUM_PIXELS 25
 
 #define BUZZ 21
+#define BUZZ_B 10
 
 #define OUT_PIN 7
-#define GREEN_PIN 11
-#define BLUE_PIN 12
 #define RED_PIN 13
 
 const uint button_A = 5;
@@ -174,13 +173,24 @@ void buzzer_on(int tempo){
 }
 
 
-//music
+
 void buzzer_on_agudo(int tempo){
     while (tempo > 0) {
         gpio_put(BUZZ, true);
         sleep_ms(1);
         tempo --;
         gpio_put(BUZZ, false);
+        sleep_ms(1);
+        tempo -=3;
+    }
+}
+
+void buzzer_b_on(int tempo){
+    while (tempo > 0) {
+        gpio_put(BUZZ_B, true);
+        sleep_ms(1);
+        tempo --;
+        gpio_put(BUZZ_B, false);
         sleep_ms(1);
         tempo -=3;
     }
@@ -253,20 +263,18 @@ int main() {
     //BUZZ
     gpio_init(BUZZ);
     gpio_set_dir(BUZZ, GPIO_OUT);
+    gpio_init(BUZZ_B);
+    gpio_set_dir(BUZZ_B, GPIO_OUT);
 
     // LED RGB
     gpio_init(RED_PIN);
-    gpio_set_dir(RED_PIN, GPIO_OUT);
-    gpio_init(GREEN_PIN);
-    gpio_set_dir(GREEN_PIN, GPIO_OUT);
-    gpio_init(BLUE_PIN);
-    gpio_set_dir(BLUE_PIN, GPIO_OUT);
+    gpio_set_dir(RED_PIN, GPIO_OUT);;
 
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     int tempolimit = 10;
     bool cor = true;
     int tempo;
-    int desarmar = 0;
+    int tempodesarm = 0;
     
     while (true) {
         
@@ -295,7 +303,7 @@ int main() {
             ssd1306_send_data(&ssd);
             ////
 
-            buzzer_on_agudo(100);
+            buzzer_on_agudo(200);
             sleep_ms(100);
 
         }else if(!gpio_get(button_B)){ 
@@ -310,7 +318,7 @@ int main() {
             ssd1306_send_data(&ssd);
             ////
 
-            buzzer_on(100);
+            buzzer_on(200);
             sleep_ms(100);
         }
 
@@ -339,7 +347,7 @@ int main() {
             ssd1306_draw_string(&ssd, "PLANTED", 35, 40);
           
             ssd1306_send_data(&ssd);
-            buzzer_on_agudo(1000); 
+            buzzer_on_agudo(2000); 
 
             bool win = false;
             for (int i = tempolimit; i >= 0; i--) {
@@ -355,8 +363,15 @@ int main() {
 
                 //desarmar
                 if(!gpio_get(button_A) && !gpio_get(button_B)){
-                    win = true;
-                    i = 0;
+                    tempodesarm = tempodesarm + 1;
+                    buzzer_b_on(50);
+
+                    if(tempodesarm == 10){
+                        win = true;
+                        i = 0;
+
+                    }
+                       
                 }
                 
                 //init cont final
@@ -367,53 +382,48 @@ int main() {
                 };
          
                 
-                if(i < 10 && i > 5){
+                
+                if(i < 10 && i > 3){
 
-                    for (int i = 1; i <= 2; i++) {
+                    for (int i = 1; i <= 4; i++) {
 
-                        
+                        gpio_put(RED_PIN, true);
                     
-                    gpio_put(RED_PIN, true);
-                    
-                    //buzzer
-                    buzzer_on(30);
-                    //---------------
-
-                    sleep_ms(250);
-                    gpio_put(RED_PIN, false);
-                    sleep_ms(250);            
+                        buzzer_on(30);
+                        sleep_ms(95);
+                        gpio_put(RED_PIN, false);
+                        sleep_ms(125);            
                     }
 
-                }else if (i <= 5){
+                }else if (i <= 3){
 
                     for (int i = 1; i <= 5; i++) {
                     
                         gpio_put(RED_PIN, true);
-                        
-                        //buzzer
-                        buzzer_on(10);
-                        //---------------
-    
-                        sleep_ms(100);
+
+                        buzzer_on(15);
+                        sleep_ms(85);
                         gpio_put(RED_PIN, false);
                         sleep_ms(100);            
-                        }
+                    }
                     
-                }else{
-                    
-                    // tempo piscada
-                    int tempo_ligado = ((float)i / (float)tempolimit) * 1000;
-                    int tempo_desligado = (1-((float)i / (float)tempolimit)) * 1000; //t1 + t2 = 1000
+                }else if ((float)i / (float)tempolimit < 0.5 && tempolimit > 20){
+                    for (int i = 1; i <= 2; i++) {
 
+                        gpio_put(RED_PIN, true);
+                        
+                        buzzer_on(50);
+                        sleep_ms(200);
+                        gpio_put(RED_PIN, false);
+                        sleep_ms(250);            
+                    }
+                    
+                }else{                 
                     gpio_put(RED_PIN, true);
-                
-                    //buzzer
-                    buzzer_on(50);
-                    //----------------
-
-                    sleep_ms(tempo_ligado);
+                    buzzer_on(100);
+                    sleep_ms(400);
                     gpio_put(RED_PIN, false);
-                    sleep_ms(tempo_desligado);   
+                    sleep_ms(500);   
             }   
             
             
@@ -446,7 +456,8 @@ int main() {
                 
                 buzzer_on_grave(5000);
             }
-
+            
+            tempodesarm = 0;
             ssd1306_fill(&ssd, !cor);
         }
         

@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = 'build/C4proj.uf2'
+elf = 'build/C4proj.elf'
